@@ -1,4 +1,4 @@
-!function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{var o;"undefined"!=typeof window?o=window:"undefined"!=typeof global?o=global:"undefined"!=typeof self&&(o=self),o.SoundCloudAudio=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"/Users/dmitri/github/soundcloud-html5-audio":[function(require,module,exports){
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.SoundCloudAudio = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 'use strict';
 
 function SoundCloud (clientId) {
@@ -9,6 +9,8 @@ function SoundCloud (clientId) {
     if (!clientId) {
         throw new Error('SoundCloud API clientId is required, get it - https://developers.soundcloud.com/');
     }
+
+    this._events = {};
 
     this._clientId = clientId;
     this._baseUrl = 'http://api.soundcloud.com';
@@ -55,12 +57,28 @@ SoundCloud.prototype._jsonp = function (url, callback) {
     target.parentNode.insertBefore(script, target);
 };
 
-SoundCloud.prototype.on = function (e, callback) {
-    this.audio.addEventListener(e, callback, false);
+SoundCloud.prototype.on = function (e, fn) {
+    this._events[e] = fn;
+    this.audio.addEventListener(e, fn, false);
 };
 
-SoundCloud.prototype.off = function (e, callback) {
-    this.audio.removeEventListener(e, callback);
+SoundCloud.prototype.off = function (e, fn) {
+    this._events[e] = null;
+    this.audio.removeEventListener(e, fn);
+};
+
+SoundCloud.prototype.unbindAll = function () {
+    for (var e in this._events) {
+        var fn = this._events[e];
+        if (fn) {
+            this.off(e, fn);
+        }
+    }
+};
+
+SoundCloud.prototype.preload = function (streamUrl) {
+    this._track = {stream_url: streamUrl};
+    this.audio.src = streamUrl+'?client_id='+this._clientId;
 };
 
 SoundCloud.prototype.play = function (options) {
@@ -104,13 +122,26 @@ SoundCloud.prototype.pause = function () {
     this.playing = false;
 };
 
+SoundCloud.prototype.stop = function () {
+    this.audio.pause();
+    this.audio.currentTime = 0;
+    this.playing = false;
+};
+
 SoundCloud.prototype.next = function () {
-    if (this._playlist && this._playlist.tracks.length) {
+    var tracksLength = this._playlist.tracks.length;
+    if (this._playlistIndex >= tracksLength-1) {
+        return;
+    }
+    if (this._playlist && tracksLength) {
         this.play({playlistIndex: ++this._playlistIndex});
     }
 };
 
 SoundCloud.prototype.previous = function () {
+    if (this._playlistIndex <= 0) {
+        return;
+    }
     if (this._playlist && this._playlist.tracks.length) {
         this.play({playlistIndex: --this._playlistIndex});
     }
@@ -126,5 +157,5 @@ SoundCloud.prototype.seek = function (e) {
 
 module.exports = SoundCloud;
 
-},{}]},{},["/Users/dmitri/github/soundcloud-html5-audio"])("/Users/dmitri/github/soundcloud-html5-audio")
+},{}]},{},[1])(1)
 });
